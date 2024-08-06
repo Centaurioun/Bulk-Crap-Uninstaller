@@ -1,4 +1,45 @@
 pull_request_rules:
+  - name: Label first PR of Mergify Stacks PRs
+    description: The first PR of a Mergify stack should be labeled as such
+    conditions:
+      - 'body ~= ^Change-Id:'
+      - '-base ~= ^mergify_cli/'
+    actions:
+      label:
+        toggle:
+          - top of the stack
+  - name: Make sure PR are update before merging with rebase
+    description: >-
+      This automatically rebases PRs when they are out-of-date with the base
+      branch to avoid semantic conflicts (next step us switch to merge queue).
+    conditions:
+      - '#commits-behind >= 10'
+    actions:
+      rebase:
+        bot_account: Centaurioun
+        autosquash: true
+  - name: Request review from a user
+    description: Request review from a specific user when checks are green.
+    conditions:
+      - '-closed'
+      - '#approved-reviews-by=0'
+      - '#changes-requested-reviews-by=0'
+      - review-requested!=@USER_NAME_HERE
+    actions:
+      request_reviews:
+        users:
+          - USER_NAME_HERE
+  - name: Assign t-shirt size to PR
+    description: >-
+      Assign a t-shirt size label to a pull request based on the number of lines
+      changed.
+    conditions:
+      - '#modified-lines >= 100'
+      - '#modified-lines < 500'
+    actions:
+      label:
+        add:
+          - Assign a label
   - name: Automatic merge without approval
     conditions:
       - label!=ready-to-merge
@@ -6,9 +47,12 @@ pull_request_rules:
       - '#changes-requested-reviews-by=0'
       - '#review-requested≤1'
     actions:
-      merge:
-        method: squash
-
+      queue:
+        merge_method: squash
+        autosquash: true
+        commit_message_template:
+        update_bot_account:
+        update_method: merge
   - name: automatic merge for Dependabot pull requests
     conditions:
       - label!=ready-to-merge
@@ -17,17 +61,16 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
+        commit_message_template:
         method: merge
-
   - name: automatic merge for Snyk pull requests
     conditions:
-      - 'title~=^\[Snyk\]'
+      - title~=^\[Snyk\]
       - head~=^snyk-fix
-      - '#review-requested≤1'
+      - check-success~=^security/snyk
     actions:
       merge:
         method: merge
-
   - name: automatic merge for Renovate pull requests
     conditions:
       - label!=ready-to-merge
@@ -36,18 +79,16 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
+        commit_message_template:
         method: merge
-
   - name: automatic merge for Requires.io pull requests
     conditions:
-      - label!=ready-to-merge
-      - '#approved-reviews-by=0'
-      - '#changes-requested-reviews-by=0'
-      - '#review-requested≤1'
+      - title~=^\[requires.io\]
+      - head~=^requires-io
+      - check-success=Travis CI - Pull Request
     actions:
       merge:
         method: merge
-
   - name: automatic merge for Sonarcloud pull requests
     conditions:
       - label!=ready-to-merge
@@ -56,8 +97,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
+        commit_message_template:
         method: merge
-
   - name: automatic merge for PyUp pull requests
     conditions:
       - label!=ready-to-merge
@@ -66,8 +107,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
+        commit_message_template:
         method: merge
-
   - name: automatic merge for Depfu pull requests
     conditions:
       - label!=ready-to-merge
@@ -76,8 +117,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
+        commit_message_template:
         method: merge
-
   - name: automatic merge for ImgBot pull requests
     conditions:
       - label!=ready-to-merge
@@ -86,8 +127,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
+        commit_message_template:
         method: merge
-
   - name: automatic merge for Reviewpad pull requests
     conditions:
       - label!=ready-to-merge
@@ -96,8 +137,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
+        commit_message_template:
         method: merge
-
   - name: automatic merge for mend-bolt-for-github pull requests
     conditions:
       - label!=ready-to-merge
@@ -106,4 +147,5 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
+        commit_message_template:
         method: merge
