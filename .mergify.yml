@@ -6,14 +6,9 @@ pull_request_rules:
       - '#changes-requested-reviews-by=0'
       - '#review-requested≤1'
     actions:
-      queue:
+      merge:
         method: squash
-        name: null
-        allow_merging_configuration_change: true
-        autosquash: true
-        commit_message_template: null
-        update_bot_account: null
-        update_method: null
+
   - name: automatic merge for Dependabot pull requests
     conditions:
       - label!=ready-to-merge
@@ -22,8 +17,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
-        commit_message_template: null
         method: merge
+
   - name: automatic merge for Snyk pull requests
     conditions:
       - 'title~=^\[Snyk\]'
@@ -32,6 +27,7 @@ pull_request_rules:
     actions:
       merge:
         method: merge
+
   - name: automatic merge for Renovate pull requests
     conditions:
       - label!=ready-to-merge
@@ -40,8 +36,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
-        commit_message_template: null
         method: merge
+
   - name: automatic merge for Requires.io pull requests
     conditions:
       - label!=ready-to-merge
@@ -51,6 +47,7 @@ pull_request_rules:
     actions:
       merge:
         method: merge
+
   - name: automatic merge for Sonarcloud pull requests
     conditions:
       - label!=ready-to-merge
@@ -59,8 +56,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
-        commit_message_template: null
         method: merge
+
   - name: automatic merge for PyUp pull requests
     conditions:
       - label!=ready-to-merge
@@ -69,8 +66,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
-        commit_message_template: null
         method: merge
+
   - name: automatic merge for Depfu pull requests
     conditions:
       - label!=ready-to-merge
@@ -79,8 +76,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
-        commit_message_template: null
         method: merge
+
   - name: automatic merge for ImgBot pull requests
     conditions:
       - label!=ready-to-merge
@@ -89,8 +86,8 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
-        commit_message_template: null
         method: merge
+
   - name: automatic merge for Reviewpad pull requests
     conditions:
       - label!=ready-to-merge
@@ -99,15 +96,14 @@ pull_request_rules:
       - '#review-requested≤1'
     actions:
       merge:
-        commit_message_template: null
         method: merge
+
   - name: automatic merge for mend-bolt-for-github pull requests
     conditions:
       - label!=ready-to-merge
       - '#approved-reviews-by=0'
       - '#changes-requested-reviews-by=0'
-      - '#review-requested≤1'      
+      - '#review-requested≤1'
     actions:
       merge:
-        commit_message_template: null
         method: merge
