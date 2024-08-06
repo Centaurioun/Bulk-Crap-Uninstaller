@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -16,35 +17,32 @@ namespace UninstallTools.Factory
 {
     public class ScriptFactory : IIndependantUninstallerFactory
     {
-        private static readonly string ScriptHelperPath;
         private static readonly PropertyInfo[] EntryProps;
-        private static readonly PropertyInfo[] SystemIconProps;
+        //private static readonly PropertyInfo[] SystemIconProps;
+        
+        private static string HelperPath { get; } = Path.Combine(UninstallToolsGlobalConfig.AssemblyLocation, @"ScriptHelper.exe");
+        private static bool IsHelperAvailable() => File.Exists(HelperPath);
 
         static ScriptFactory()
         {
-            var helper = Path.Combine(UninstallToolsGlobalConfig.AssemblyLocation, @"ScriptHelper.exe");
-            var frameworkVersion = WindowsTools.CheckNetFramework4Installed(true);
-            if (File.Exists(helper) && frameworkVersion != null && frameworkVersion >= new Version(4, 5, 0))
-                ScriptHelperPath = helper;
-
             EntryProps = typeof(ApplicationUninstallerEntry)
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
                 .Where(p => p.CanWrite && p.PropertyType == typeof(string))
                 .ToArray();
 
-            SystemIconProps = typeof(SystemIcons)
-                .GetProperties(BindingFlags.Static | BindingFlags.Public)
-                .Where(p => p.CanRead)
-                .ToArray();
+            // SystemIconProps = typeof(SystemIcons)
+            //     .GetProperties(BindingFlags.Static | BindingFlags.Public)
+            //     .Where(p => p.CanRead)
+            //     .ToArray();
         }
 
         public IList<ApplicationUninstallerEntry> GetUninstallerEntries(
             ListGenerationProgress.ListGenerationCallback progressCallback)
         {
             var results = new List<ApplicationUninstallerEntry>();
-            if (ScriptHelperPath == null) return results;
+            if (!IsHelperAvailable()) return results;
 
-            var result = FactoryTools.StartHelperAndReadOutput(ScriptHelperPath, string.Empty);
+            var result = FactoryTools.StartHelperAndReadOutput(HelperPath, "list");
 
             if (string.IsNullOrEmpty(result)) return results;
 
@@ -66,7 +64,7 @@ namespace UninstallTools.Factory
                     }
                     catch (SystemException ex)
                     {
-                        Console.WriteLine(ex);
+                        Trace.WriteLine(ex);
                     }
                 }
 
@@ -75,13 +73,14 @@ namespace UninstallTools.Factory
                 if (string.IsNullOrEmpty(entry.Publisher))
                     entry.Publisher = "Script";
 
-                if (dataSet.TryGetValue("SystemIcon", out var icon) && !string.IsNullOrEmpty(icon))
-                {
-                    var iconObj = SystemIconProps
-                        .FirstOrDefault(p => p.Name.Equals(icon, StringComparison.OrdinalIgnoreCase))
-                        ?.GetValue(null, null) as Icon;
-                    entry.IconBitmap = iconObj;
-                }
+                //if (dataSet.TryGetValue("SystemIcon", out var icon) && !string.IsNullOrEmpty(icon))
+                //{
+                //    var iconObj = SystemIconProps
+                //        .FirstOrDefault(p => p.Name.Equals(icon, StringComparison.OrdinalIgnoreCase))
+                //        ?.GetValue(null, null) as Icon;
+                //    entry.IconBitmap = iconObj;
+                //}
+                entry.IconBitmap = SystemIcons.Shield;
 
                 results.Add(entry);
             }

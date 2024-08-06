@@ -66,7 +66,7 @@
       <Value Profile="(Default)">Ask</Value>
     </Setting>
     <Setting Name="MiscCheckForUpdates" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
+      <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="BackupLeftovers" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="Klocman.YesNoAsk" Scope="User">
       <Value Profile="(Default)">Ask</Value>
@@ -78,7 +78,7 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="MiscSendStatistics" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
+      <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="ExternalPreCommands" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
@@ -95,7 +95,7 @@
     <Setting Name="Language" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="MiscUserId" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.Int64" Scope="User">
+    <Setting Name="MiscUserId" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.UInt64" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="AdvancedTestCertificates" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.Boolean" Scope="User">
@@ -123,7 +123,7 @@
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="MiscUserRatings" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
+      <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="MiscRatingCacheDate" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.DateTime" Scope="User">
       <Value Profile="(Default)">1990-01-01</Value>
@@ -230,11 +230,14 @@
     <Setting Name="ScanScoop" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="DpiAwareTest" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">False</Value>
+    <Setting Name="WindowDpiAware" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="CreateRestorePoint" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="UninstallerListDoubleClickAction" Provider="PortableSettingsProvider.PortableSettingsProvider" Roaming="true" Type="BulkCrapUninstaller.Forms.UninstallerListDoubleClickAction" Scope="User">
+      <Value Profile="(Default)">OpenProperties</Value>
     </Setting>
   </Settings>
 </SettingsFile>

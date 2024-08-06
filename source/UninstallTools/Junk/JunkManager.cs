@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Klocman.Extensions;
 using Klocman.Forms.Tools;
@@ -32,12 +33,14 @@ namespace UninstallTools.Junk
         {
             if (x is FileSystemJunk fileSystemJunk)
             {
-                return !fileSystemJunk.Path.FullName.StartsWith(UninstallToolsGlobalConfig.AppLocation, StringComparison.OrdinalIgnoreCase);
+                return fileSystemJunk.Path == null || 
+                       !fileSystemJunk.Path.FullName.StartsWith(UninstallToolsGlobalConfig.AppLocation, StringComparison.OrdinalIgnoreCase);
             }
 
             if (x is StartupJunkNode startupJunk)
             {
-                return !startupJunk.Entry.CommandFilePath.StartsWith(UninstallToolsGlobalConfig.AppLocation, StringComparison.OrdinalIgnoreCase);
+                return startupJunk.Entry?.CommandFilePath == null || 
+                       !startupJunk.Entry.CommandFilePath.StartsWith(UninstallToolsGlobalConfig.AppLocation, StringComparison.OrdinalIgnoreCase);
             }
 
             return true;
@@ -98,7 +101,16 @@ namespace UninstallTools.Junk
             var knownFolderstype = Type.GetType("Windows.Storage.KnownFolders, Microsoft.Windows.SDK.NET", false);
             // Might not be available on some systems
             if (knownFolderstype != null)
-                AddRange(knownFolderstype.GetProperties().Attempt(p => ((Windows.Storage.StorageFolder)p.GetValue(null)).Path));
+            {
+                try
+                {
+                    AddRange(knownFolderstype.GetProperties().Attempt(p => ((Windows.Storage.StorageFolder)p.GetValue(null))!.Path));
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine("Failed to collect KnownFolders: " + ex);
+                }
+            }
 
             return results;
         }

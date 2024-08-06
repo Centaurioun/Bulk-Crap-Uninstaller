@@ -53,6 +53,9 @@ namespace BulkCrapUninstaller.Forms
 
                 // it - Italian
                 new {culture =  CultureInfo.GetCultureInfo("it"), translator = "Luca Carrabba (luca.carrabba@yahoo.com)"},
+                
+                // ja - Japanese
+                new {culture =  CultureInfo.GetCultureInfo("ja"), translator = "KKbion"},
 
                 // nl - Dutch
                 new {culture =  CultureInfo.GetCultureInfo("nl"), translator = "Jaap Kramer"},
@@ -70,11 +73,20 @@ namespace BulkCrapUninstaller.Forms
                 // Slovenian
                 new {culture = CultureInfo.GetCultureInfo("sl"), translator = "Jadran Rudec"},
 
+                // Swedish
+                new {culture = CultureInfo.GetCultureInfo("sv"), translator = "@glecas"},
+
                 // Turkish
-                new {culture = CultureInfo.GetCultureInfo("tr"), translator = "Harun Güngör"},
+                new {culture = CultureInfo.GetCultureInfo("tr"), translator = "Harun Güngör, @DogancanYr"},
+
+                // Vietnamese
+                new {culture = CultureInfo.GetCultureInfo("vi"), translator = "wanwanvxt / Vũ Xuân Trường"},
                 
                 // Simplified Chinese
-                new {culture = CultureInfo.GetCultureInfo("zh-Hans"), translator = "cc713"}
+                new {culture = CultureInfo.GetCultureInfo("zh-Hans"), translator = "cc713"},
+                
+                // Traditional Chinese
+                new {culture = CultureInfo.GetCultureInfo("zh-Hant"), translator = "Henryliu880922"}
             };
 
             foreach (var translationCredit in translationCredits

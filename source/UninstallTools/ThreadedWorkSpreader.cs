@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -12,7 +13,7 @@ namespace UninstallTools
 {
     internal class ThreadedWorkSpreader<TData, TState> where TState : class
     {
-        private readonly List<WorkerData> _workers = new List<WorkerData>();
+        private readonly List<WorkerData> _workers = new();
 
         public ThreadedWorkSpreader(int maxThreadsPerBucket, Action<TData, TState> workLogic,
             Func<IList<TData>, TState> stateGenerator, Func<TData, string> dataNameGetter)
@@ -79,7 +80,7 @@ namespace UninstallTools
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    Trace.WriteLine("Exception in worker thread: " + ex);
                 }
 
             return _workers.Select(x => x.State);
@@ -87,7 +88,7 @@ namespace UninstallTools
 
         private void WorkerThread(object obj)
         {
-            if (obj is not WorkerData workerInterface) throw new ArgumentException("obj is not WorkerData", nameof(obj));
+            if (obj is not WorkerData workerInterface) throw new ArgumentException(@"obj is not WorkerData", nameof(obj));
 
             foreach (var data in workerInterface.Input)
             {

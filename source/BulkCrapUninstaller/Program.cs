@@ -7,10 +7,14 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Xml.Linq;
 using BulkCrapUninstaller.Forms;
+using BulkCrapUninstaller.Functions.Ratings;
 using BulkCrapUninstaller.Properties;
 using Klocman.Extensions;
 using Klocman.Forms.Tools;
@@ -49,7 +53,8 @@ namespace BulkCrapUninstaller
             {
                 if (_assemblyLocation == null)
                 {
-                    var location = Assembly.GetAssembly(typeof(Program)).Location;
+                    var location = Assembly.GetAssembly(typeof(Program))?.Location;
+                    if (location == null) throw new InvalidOperationException("Failed to get entry assembly location");
                     if (location.Substring(location.LastIndexOf('\\')).Contains('.'))
                         location = PathTools.GetDirectory(location);
                     _assemblyLocation = new DirectoryInfo(location);
@@ -68,8 +73,7 @@ namespace BulkCrapUninstaller
         /// <summary>
         /// Don't use settings
         /// </summary>
-        public static string DbConnectionString =>
-            Debugger.IsAttached ? Resources.DbDebugConnectionString : Resources.DbConnectionString;
+        public static Uri ConnectionString { get; } = Debugger.IsAttached ? new Uri(@"http://localhost:7721") : new Uri(@"http://bugsklocman.ddns.net:7721");
 
         public static string InstalledRegistryKeyName
         {
@@ -131,10 +135,31 @@ namespace BulkCrapUninstaller
 
             // Initializes the settings object (unless it has been accessed before, which it shouldnt have)
             if (Settings.Default.MiscUserId == 0)
-                Settings.Default.MiscUserId = WindowsTools.GetUniqueUserId();
+                Settings.Default.MiscUserId = GetUniqueUserId();
 
             if (IsAfterUpgrade)
                 ClearCaches(false);
+        }
+
+        private static ulong GetUniqueUserId()
+        {
+            // Get an ID that is unlikely to be duplicate but that should always return the same on current pc
+            var windowsIdentity = WindowsIdentity.GetCurrent();
+
+            string networkIdentity;
+            try
+            {
+                var networkInterfaces = NetworkInterface.GetAllNetworkInterfaces();
+                networkIdentity = string.Join("", networkInterfaces.Select(x => x.GetPhysicalAddress().ToString()));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                networkIdentity = e.ToString();
+            }
+
+            var idStr = windowsIdentity.User?.Value + string.Join("", windowsIdentity.Claims.Select(x => x.Value)) + networkIdentity;
+            return UninstallerRatingManager.Utils.StableHash(idStr);
         }
 
         private static void DeleteConfigFile()
@@ -252,6 +277,13 @@ namespace BulkCrapUninstaller
                 else
                     Console.WriteLine(systemException);
             }
+        }
+
+        public static HttpClient GetHttpClient()
+        {
+            var cl = new HttpClient();
+            cl.BaseAddress = ConnectionString;
+            return cl;
         }
     }
 }

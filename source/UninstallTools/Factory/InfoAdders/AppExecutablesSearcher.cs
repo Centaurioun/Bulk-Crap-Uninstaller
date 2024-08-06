@@ -78,8 +78,9 @@ namespace UninstallTools.Factory.InfoAdders
         internal static ScanDirectoryResult ScanDirectory(DirectoryInfo directory)
         {
             var results = new List<FileInfo>(directory.GetFiles("*.exe", SearchOption.TopDirectoryOnly));
-            var otherSubdirs = new List<DirectoryInfo>();
             var binSubdirs = new List<DirectoryInfo>();
+            var otherSubdirs = new List<DirectoryInfo>();
+            var maybeSubdirs = new List<DirectoryInfo>();
             foreach (var subdir in directory.GetDirectories())
             {
                 try
@@ -92,11 +93,14 @@ namespace UninstallTools.Factory.InfoAdders
                     }
                     else
                     {
+                        // This skips ISO language codes, much faster than a more specific compare
+                        if (subName.Length == 5 && subName[2].Equals('-')) continue;
+
                         // Directories with very short names likely contain program files
-                        if (subName.Length > 3 &&
-                            // This skips ISO language codes, much faster than a more specific compare
-                            (subName.Length != 5 || !subName[2].Equals('-')))
+                        if (subName.Length > 3)
                             otherSubdirs.Add(subdir);
+                        else 
+                            maybeSubdirs.Add(subdir);
                     }
                 }
                 catch (IOException)
@@ -107,20 +111,33 @@ namespace UninstallTools.Factory.InfoAdders
                 }
             }
 
+            if (results.Count == 0 && binSubdirs.Count == 0)
+                otherSubdirs.AddRange(maybeSubdirs);
+
+            // 7-Zip console application. Sometimes causes bad display data if it's picked as the most likely executable. No effect on real 7-Zip entries.
+            results.RemoveAll(x => string.Equals(x.Name, "7z.exe", StringComparison.OrdinalIgnoreCase));
+
             return new ScanDirectoryResult(results, binSubdirs, otherSubdirs);
         }
 
         internal static IEnumerable<FileInfo> SortListExecutables(IEnumerable<FileInfo> targets, string targetString)
         {
+            var reportInName = targetString.Contains("report", StringComparison.OrdinalIgnoreCase);
+            var crashInName = targetString.Contains("crash", StringComparison.OrdinalIgnoreCase);
             int GetPenaltyPoints(FileInfo fileInfo)
             {
-                if (fileInfo.Name.Equals("uninstaller.exe", StringComparison.OrdinalIgnoreCase)
-                    || fileInfo.Name.Equals("uninstall.exe", StringComparison.OrdinalIgnoreCase)
-                    || fileInfo.Name.Contains("unins00", StringComparison.OrdinalIgnoreCase))
+                var fileName = fileInfo.Name;
+                if (fileName.Equals("uninstaller.exe", StringComparison.OrdinalIgnoreCase)
+                    || fileName.Equals("uninstall.exe", StringComparison.OrdinalIgnoreCase)
+                    || fileName.Contains("unins00", StringComparison.OrdinalIgnoreCase))
                     return 20;
-                if (fileInfo.Name.Contains("uninsta", StringComparison.OrdinalIgnoreCase))
+                if(!reportInName && fileName.Contains("report", StringComparison.OrdinalIgnoreCase))
+                    return 10;
+                if(!crashInName && fileName.Contains("crash", StringComparison.OrdinalIgnoreCase))
+                    return 10;
+                if (fileName.Contains("uninsta", StringComparison.OrdinalIgnoreCase))
                     return 4;
-                if (fileInfo.Name.Contains("unins", StringComparison.OrdinalIgnoreCase))
+                if (fileName.Contains("unins", StringComparison.OrdinalIgnoreCase))
                     return 2;
                 return 0;
             }

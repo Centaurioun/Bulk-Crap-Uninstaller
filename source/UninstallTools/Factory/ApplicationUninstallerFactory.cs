@@ -19,7 +19,7 @@ namespace UninstallTools.Factory
 {
     public static class ApplicationUninstallerFactory
     {
-        private static readonly InfoAdderManager InfoAdder = new InfoAdderManager();
+        private static readonly InfoAdderManager InfoAdder = new();
 
         public static IList<ApplicationUninstallerEntry> GetUninstallerEntries(ListGenerationProgress.ListGenerationCallback callback)
         {
@@ -58,7 +58,7 @@ namespace UninstallTools.Factory
                         regProgress.Inner = report;
                         callback(regProgress);
                     });
-                    Console.WriteLine($"[Performance] Factory {typeof(RegistryFactory).Name} took {sw.ElapsedMilliseconds}ms to finish");
+                    Trace.WriteLine($"[Performance] Factory {nameof(RegistryFactory)} took {sw.ElapsedMilliseconds}ms to finish");
 
                     // Fill in install llocations for DirectoryFactory to improve speed and quality of results
                     if (UninstallToolsGlobalConfig.UninstallerFactoryCache != null)
@@ -67,7 +67,7 @@ namespace UninstallTools.Factory
                     var installLocAddProgress = new ListGenerationProgress(currentStep++, totalStepCount, Localisation.Progress_GatherUninstallerInfo);
                     callback(installLocAddProgress);
 
-                    FactoryThreadedHelpers.GenerateMisingInformation(registryResults, InfoAdder, null, true, report =>
+                    FactoryThreadedHelpers.GenerateMissingInformation(registryResults, InfoAdder, null, true, report =>
                     {
                         installLocAddProgress.Inner = report;
                         callback(installLocAddProgress);
@@ -93,7 +93,7 @@ namespace UninstallTools.Factory
                         driveProgress.Inner = report;
                         callback(driveProgress);
                     });
-                    Console.WriteLine($"[Performance] Factory {typeof(DirectoryFactory).Name} took {sw.ElapsedMilliseconds}ms to finish");
+                    Trace.WriteLine($"[Performance] Factory {nameof(DirectoryFactory)} took {sw.ElapsedMilliseconds}ms to finish");
                 }
                 else
                 {
@@ -132,7 +132,7 @@ namespace UninstallTools.Factory
 
                 var infoAddProgress = new ListGenerationProgress(currentStep++, totalStepCount, Localisation.Progress_GeneratingInfo);
                 callback(infoAddProgress);
-                FactoryThreadedHelpers.GenerateMisingInformation(mergedResults, InfoAdder, msiProducts, false, report =>
+                FactoryThreadedHelpers.GenerateMissingInformation(mergedResults, InfoAdder, msiProducts, false, report =>
                 {
                     infoAddProgress.Inner = report;
                     callback(infoAddProgress);
@@ -150,7 +150,7 @@ namespace UninstallTools.Factory
                     }
                     catch (SystemException e)
                     {
-                        Console.WriteLine(@"Failed to save cache: " + e);
+                        Trace.WriteLine(@"Failed to save cache: " + e);
                     }
                 }
 
@@ -244,7 +244,7 @@ namespace UninstallTools.Factory
                     Debug.WriteLine("Cache miss: " + entry.DisplayName);
                 }
             }
-            Console.WriteLine($@"Cache hits: {hits}/{baseEntries.Count}");
+            Trace.WriteLine($@"Cache hits: {hits}/{baseEntries.Count}");
         }
 
         private static List<ApplicationUninstallerEntry> GetMiscUninstallerEntries(ListGenerationProgress.ListGenerationCallback progressCallback)
@@ -265,7 +265,7 @@ namespace UninstallTools.Factory
                 {
                     var sw = Stopwatch.StartNew();
                     MergeResults(otherResults, kvp.GetUninstallerEntries(null), null);
-                    Console.WriteLine($"[Performance] Factory {kvp.DisplayName} took {sw.ElapsedMilliseconds}ms to finish");
+                    Trace.WriteLine($"[Performance] Factory {kvp.GetType().Name} took {sw.ElapsedMilliseconds}ms to finish");
                 }
                 catch (Exception ex)
                 {

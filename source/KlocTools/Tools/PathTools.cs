@@ -124,7 +124,9 @@ namespace Klocman.Tools
         /// <returns></returns>
         public static string GetFullPathOfExecutable(string filename)
         {
-            var paths = new[] { Environment.CurrentDirectory }.Concat(Environment.GetEnvironmentVariable("PATH").Split(';'));
+            IEnumerable<string> paths = new[] { Environment.CurrentDirectory };
+            var pathVariable = Environment.GetEnvironmentVariable("PATH");
+            if (pathVariable != null) paths = paths.Concat(pathVariable.Split(';'));
             var combinations = paths.Select(x => Path.Combine(x, filename));
             return combinations.FirstOrDefault(File.Exists) ?? GetExecutablePathFromAppPaths(filename);
         }
@@ -274,9 +276,17 @@ namespace Klocman.Tools
             if (string.IsNullOrEmpty(path1) || string.IsNullOrEmpty(path2))
                 return false;
 
-            path1 = NormalizePath(path1);
-            path2 = NormalizePath(path2);
-            return path1.Equals(path2, StringComparison.InvariantCultureIgnoreCase);
+            try
+            {
+                path1 = path1.SafeNormalize().Trim(PathTrimChars);
+                path2 = path2.SafeNormalize().Trim(PathTrimChars);
+                return path1.Equals(path2, StringComparison.InvariantCultureIgnoreCase);
+            }
+            catch
+            {
+                // Fall back to ordinal in case SafeNormalize isn't safe enough
+                return path1.Trim(PathTrimChars).Equals(path2.Trim(PathTrimChars), StringComparison.OrdinalIgnoreCase);
+            }
         }
 
         /// <summary>

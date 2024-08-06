@@ -38,13 +38,13 @@ namespace UninstallTools.Junk.Containers
             }
             catch (SystemException ex)
             {
-                Console.WriteLine(ex);
+                Trace.WriteLine($"Failed to delete junk {GetDisplayName()} - {ex}");
             }
         }
 
         public override string GetDisplayName()
         {
-            return _junkName;
+            return $"{_junkName} ({ProcessToStart})";
         }
 
         public override void Open()

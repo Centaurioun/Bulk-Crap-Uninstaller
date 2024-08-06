@@ -11,11 +11,11 @@ using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Threading;
-using System.Xml.Linq;
 using Windows.ApplicationModel;
 using Windows.Foundation;
 using Windows.Management.Deployment;
 using Klocman;
+using System.Xml;
 
 namespace StoreAppHelper
 {
@@ -68,7 +68,7 @@ namespace StoreAppHelper
                 if ( /*package.IsFramework || package.IsResourcePackage ||*/
                     package.Status.Disabled || package.Status.NotAvailable)
                     continue;
-                
+
                 var result = TryCreateAppFromPackage(package);
                 if (result != null)
                     yield return result;
@@ -81,27 +81,46 @@ namespace StoreAppHelper
             if (manifestContents == null) return null;
             try
             {
-                var start = manifestContents.IndexOf("<Properties>", StringComparison.Ordinal);
-                var end = manifestContents.IndexOf("</Properties>", StringComparison.Ordinal);
-                var rootXml = XElement.Parse(manifestContents.Substring(start, end - start + 13).Replace("uap:", string.Empty));
-                var displayName = rootXml.Element("DisplayName")?.Value;
-                var logoPath = rootXml.Element("Logo")?.Value;
-                var publisherDisplayName = rootXml.Element("PublisherDisplayName")?.Value;
                 var installPath = package.InstalledLocation.Path;
-                var extractedDisplayName = ExtractDisplayName(installPath, package.Id.Name, displayName);
+                var externalPath = package.EffectiveLocation.Path.Equals(installPath, StringComparison.OrdinalIgnoreCase) ? null : package.EffectiveLocation.Path;
 
-                return new App(package.Id.FullName, 
-                    string.IsNullOrWhiteSpace(extractedDisplayName) ? package.Id.Name : extractedDisplayName, 
-                    ExtractDisplayName(installPath, package.Id.Name, publisherDisplayName), 
-                    ExtractDisplayIcon(installPath, logoPath), 
-                    installPath,
-                    package.SignatureKind == PackageSignatureKind.System);
+                var xmlDoc = new XmlDocument();
+                xmlDoc.LoadXml(manifestContents);
+                // namespaces are mandatory, even if there's a default namespace
+                var nsmgr = new XmlNamespaceManager(xmlDoc.NameTable);
+                nsmgr.AddNamespace("ns", xmlDoc.DocumentElement!.NamespaceURI);
+                var properties = xmlDoc.DocumentElement.SelectSingleNode("//ns:Properties", nsmgr);
+
+                var displayNameRes = properties!.SelectSingleNode("ns:DisplayName/text()", nsmgr)?.Value;
+                var displayNameExtracted = ExtractDisplayName(installPath, package.Id.Name, displayNameRes)
+                                           ?? (externalPath != null ? ExtractDisplayName(externalPath, package.Id.Name, displayNameRes) : null);
+
+                var logoPathRes = properties.SelectSingleNode("ns:Logo/text()", nsmgr)?.Value;
+                var logoPathExtracted = ExtractDisplayIcon(installPath, logoPathRes)
+                                         ?? (externalPath != null ? ExtractDisplayIcon(externalPath, logoPathRes) : null);
+
+                var publisherDisplayNameRes = properties.SelectSingleNode("ns:PublisherDisplayName/text()", nsmgr)?.Value;
+                var publisherDisplayNameExtracted = ExtractDisplayName(installPath, package.Id.Name, publisherDisplayNameRes)
+                                           ?? (externalPath != null ? ExtractDisplayName(externalPath, package.Id.Name, publisherDisplayNameRes) : null);
+
+                return new App(
+                    fullName: package.Id.FullName,
+                    displayName: FirstValidName(displayNameExtracted, displayNameRes, package.DisplayName) ?? package.InstalledLocation.DisplayName,
+                    publisherDisplayName: FirstValidName(publisherDisplayNameExtracted, package.PublisherDisplayName) ?? "",
+                    logo: logoPathExtracted,
+                    installedLocation: installPath,
+                    isProtected: package.SignatureKind == PackageSignatureKind.System);
             }
             catch (SystemException exception)
             {
                 LogWriter.WriteExceptionToLog(exception);
                 return null;
             }
+        }
+
+        private static string FirstValidName(params string[] names)
+        {
+            return names.FirstOrDefault(s => !string.IsNullOrEmpty(s) && !s.StartsWith("ms-resource:"));
         }
 
         private static string TryGetAppManifest(Package package)
@@ -143,19 +162,26 @@ namespace StoreAppHelper
         /// <param name="displayName">Application.VisualElements.DisplayName</param>
         private static string ExtractDisplayName(string appDir, string packageName, string displayName)
         {
-            Uri uri;
-            if (!Uri.TryCreate(displayName, UriKind.Absolute, out uri))
+            if (!Uri.TryCreate(displayName, UriKind.Absolute, out var uri))
                 return displayName;
 
             var priPath = Path.Combine(appDir, "resources.pri");
             var resource = $"ms-resource://{packageName}/resources/{uri.Segments.Last()}";
-            var name = NativeMethods.ExtractStringFromPriFile(priPath, resource);
-            if (!string.IsNullOrEmpty(name.Trim()))
+            var name = NativeMethods.ExtractStringFromPriFile(priPath, resource)?.Trim();
+            if (!string.IsNullOrEmpty(name))
                 return name;
 
             var res = string.Concat(uri.Segments.Skip(1));
             resource = $"ms-resource://{packageName}/{res}";
-            return NativeMethods.ExtractStringFromPriFile(priPath, resource);
+            name = NativeMethods.ExtractStringFromPriFile(priPath, resource)?.Trim();
+            if (!string.IsNullOrEmpty(name))
+                return name;
+
+            name = NativeMethods.ExtractStringFromPriFile(priPath, displayName)?.Trim();
+            if (!string.IsNullOrEmpty(name))
+                return name;
+
+            return null;
         }
 
         private static class NativeMethods

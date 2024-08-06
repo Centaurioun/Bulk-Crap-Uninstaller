@@ -4,6 +4,7 @@
 */
 
 using System;
+using System.ComponentModel;
 using System.Windows.Forms;
 using Klocman.Subsystems;
 
@@ -23,6 +24,12 @@ namespace Klocman.Controls
             _searcher = new WindowHoverSearcher(pictureBox1);
             _searcher.HoveredWindowChanged += SearcherOnHoveredWindowChanged;
             _searcher.WindowSelected += SearcherOnWindowSelected;
+        }
+
+        public event EventHandler PickingStarted
+        {
+            add => _searcher.PickingStarted += value;
+            remove => _searcher.PickingStarted -= value;
         }
 
         public event EventHandler<WindowHoverEventArgs> HoveredWindowChanged
@@ -48,7 +55,15 @@ namespace Klocman.Controls
         {
             label1.Text = windowHoverEventArgs.TargetWindow.WindowText;
             label2.Text = windowHoverEventArgs.TargetWindow.WindowRect.ToString();
-            label3.Text = windowHoverEventArgs.TargetWindow.GetRunningProcess().MainModule.FileName;
+            try
+            {
+                label3.Text = windowHoverEventArgs.TargetWindow.GetRunningProcess().MainModule?.FileName ?? "---";
+            }
+            catch (SystemException ex)
+            {
+                // Getting MainModule on a 64 bit process throws if BCU is running as 32 bit
+                label3.Text = ex.Message;
+            }
         }
     }
 }

@@ -15,18 +15,20 @@ namespace SteamHelper
     internal class SteamInstallation
     {
         private static SteamInstallation _instance;
+        private IReadOnlyList<string> _steamAppsLocations;
 
         private SteamInstallation()
         {
             InstallationDirectory = FindSteamInstallationLocation();
             MainExecutableFilename = Path.Combine(InstallationDirectory, "Steam.exe");
-            SteamAppsLocations = FindSteamAppsLocations(InstallationDirectory);
         }
 
-        public static SteamInstallation Instance => _instance ?? (_instance = new SteamInstallation());
+        public static SteamInstallation Instance => _instance ??= new SteamInstallation();
 
         public string InstallationDirectory { get; }
-        public IEnumerable<string> SteamAppsLocations { get; }
+
+        public IReadOnlyList<string> SteamAppsLocations => _steamAppsLocations ??= FindSteamAppsLocations(InstallationDirectory).ToList().AsReadOnly();
+
         public string MainExecutableFilename { get; }
 
         private static IEnumerable<string> FindSteamAppsLocations(string installationDirectory)
@@ -41,7 +43,7 @@ namespace SteamHelper
                 foreach (var line in File.ReadAllLines(vdfPath))
                 {
                     // Gather key/value pairs from the file. It seems to be in a proprietary format
-                    var pieces = line.Split('\"').Where(p => !string.IsNullOrWhiteSpace(p?.Trim())).ToList();
+                    var pieces = line.Split('\"').Where(p => !string.IsNullOrWhiteSpace(p.Trim())).ToList();
                     if (pieces.Count != 2) continue;
                     // Only path matters, it specifies absolute path to the library folder
                     if (pieces[0] == "path")
@@ -52,7 +54,7 @@ namespace SteamHelper
                 }
             }
 
-            return libraryLocations.Distinct().Where(Directory.Exists);
+            return libraryLocations.Distinct(StringComparer.CurrentCultureIgnoreCase).Where(Directory.Exists);
         }
 
         private static string FindSteamInstallationLocation()

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Klocman.Extensions;
@@ -30,7 +31,7 @@ namespace UninstallTools.Junk.Finders.Registry
             }
             catch (SystemException ex)
             {
-                Console.WriteLine(ex);
+                Trace.WriteLine($"Failed to setup {CategoryName} junk scanner: {ex}");
             }
         }
 
@@ -50,7 +51,7 @@ namespace UninstallTools.Junk.Finders.Registry
                     var junk = new RegistryKeyJunk(Path.Combine(RegKey, x), target, this);
                     junk.Confidence.Add(ConfidenceRecords.ExplicitConnection);
                     return junk;
-                }).Cast<IJunkResult>();
+                });
         }
 
         public string CategoryName => "HeapLeakDetection";

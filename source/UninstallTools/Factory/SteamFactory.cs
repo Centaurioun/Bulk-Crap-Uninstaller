@@ -5,113 +5,144 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Klocman.Extensions;
+using System.Security;
 using Klocman.IO;
-using Klocman.Tools;
+using UninstallTools.Junk;
+using UninstallTools.Junk.Confidence;
+using UninstallTools.Junk.Containers;
 using UninstallTools.Properties;
 
 namespace UninstallTools.Factory
 {
-    public class SteamFactory : IIndependantUninstallerFactory
+    public class SteamFactory : IIndependantUninstallerFactory, IJunkCreator
     {
-        private static bool? _steamHelperIsAvailable;
-        private static string _steamLocation;
-
-        internal static string SteamLocation
+        private static bool GetSteamInfo(out string steamLocation)
         {
-            get
-            {
-                if(_steamLocation == null)
-                    GetSteamInfo();
-                return _steamLocation;
-            }
-            private set { _steamLocation = value; }
-        }
+            steamLocation = null;
 
-        internal static bool SteamHelperIsAvailable
-        {
-            get
-            {
-                if (!_steamHelperIsAvailable.HasValue)
-                {
-                    _steamHelperIsAvailable = false;
-                    GetSteamInfo();
-                }
-                return _steamHelperIsAvailable.Value;
-            }
-        }
-
-        private static void GetSteamInfo()
-        {
-            _steamHelperIsAvailable = false;
-
-            if (File.Exists(SteamHelperPath) && WindowsTools.CheckNetFramework4Installed(true) != null)
+            if (File.Exists(SteamHelperPath))
             {
                 var output = FactoryTools.StartHelperAndReadOutput(SteamHelperPath, "steam");
                 if (!string.IsNullOrEmpty(output)
                     && !output.Contains("error", StringComparison.InvariantCultureIgnoreCase)
                     && Directory.Exists(output = output.Trim().TrimEnd('\\', '/')))
                 {
-                    _steamHelperIsAvailable = true;
-                    SteamLocation = output;
+                    steamLocation = output;
+                    return true;
                 }
             }
+
+            return false;
         }
 
-        internal static string SteamHelperPath 
-            => Path.Combine(UninstallToolsGlobalConfig.AssemblyLocation, @"SteamHelper.exe");
+        internal static string SteamHelperPath { get; } = Path.Combine(UninstallToolsGlobalConfig.AssemblyLocation, @"SteamHelper.exe");
+
+        #region IIndependantUninstallerFactory
 
         public IList<ApplicationUninstallerEntry> GetUninstallerEntries(
             ListGenerationProgress.ListGenerationCallback progressCallback)
         {
             var results = new List<ApplicationUninstallerEntry>();
-            if (!SteamHelperIsAvailable) return results;
+            if (!GetSteamInfo(out var steamLocation)) return results;
 
-            var output = FactoryTools.StartHelperAndReadOutput(SteamHelperPath, "list");
-            if (string.IsNullOrEmpty(output) || output.Contains("error", StringComparison.InvariantCultureIgnoreCase)) return results;
+            var output = FactoryTools.StartHelperAndReadOutput(SteamHelperPath, "l /i");
+            if (string.IsNullOrEmpty(output)) return results;
 
-            foreach (var idString in output.SplitNewlines(StringSplitOptions.RemoveEmptyEntries))
+            foreach (var data in FactoryTools.ExtractAppDataSetsFromHelperOutput(output))
             {
-                if (!int.TryParse(idString, out var appId)) continue;
-
-                output = FactoryTools.StartHelperAndReadOutput(SteamHelperPath, "info " + appId.ToString("G"));
-
-                if (string.IsNullOrEmpty(output)) continue;
-
-                var lines = output.SplitNewlines(StringSplitOptions.RemoveEmptyEntries).Select(x =>
-                {
-                    var o = x.Split(new[] { " - " }, StringSplitOptions.None);
-                    return new KeyValuePair<string, string>(o[0], o[1]);
-                }).ToList();
-                
-                string GetValue(string fieldName)
-                {
-                    return lines.Single(x => x.Key.Equals(fieldName, StringComparison.InvariantCultureIgnoreCase)).Value;
-                }
+                if (!int.TryParse(data["AppId"], out var appId)) continue;
 
                 var entry = new ApplicationUninstallerEntry
                 {
-                    DisplayName = GetValue("Name"),
-                    UninstallString = GetValue("UninstallString"),
-                    InstallLocation = GetValue("InstallDirectory"),
+                    DisplayName = data["Name"],
+                    UninstallString = data["UninstallString"],
+                    InstallLocation = data["InstallDirectory"],
                     UninstallerKind = UninstallerType.Steam,
                     IsValid = true,
                     IsOrphaned = true,
                     RatingId = "Steam App " + appId.ToString("G")
                 };
 
-                if (long.TryParse(GetValue("SizeOnDisk"), out var bytes))
+                if (long.TryParse(data["SizeOnDisk"], out var bytes))
                     entry.EstimatedSize = FileSize.FromBytes(bytes);
 
                 results.Add(entry);
             }
+
+            results.Add(new ApplicationUninstallerEntry
+            {
+                AboutUrl = @"http://steampowered.com/",
+                InstallLocation = steamLocation,
+                DisplayIcon = Path.Combine(steamLocation, "Steam.exe"),
+                DisplayName = "Steam",
+                UninstallerKind = UninstallerType.Nsis,
+                UninstallString = Path.Combine(steamLocation, "uninstall.exe"),
+                IsOrphaned = false,
+                RatingId = "Steam",
+                IsValid = File.Exists(Path.Combine(steamLocation, "uninstall.exe")),
+                InstallDate = Directory.GetCreationTime(steamLocation),
+                Publisher = "Valve Corporation",
+                // Prevent very long size scan in case of many games, the install itself is about 600-800MB
+                EstimatedSize = FileSize.FromKilobytes(1024 * 700)
+            });
 
             return results;
         }
 
         public bool IsEnabled() => UninstallToolsGlobalConfig.ScanSteam;
         public string DisplayName => Localisation.Progress_AppStores_Steam;
+
+        #endregion
+
+        #region IJunkCreator
+
+        private static readonly string[] TempFolderNames = { "downloading", "shadercache", "temp" };
+        public void Setup(ICollection<ApplicationUninstallerEntry> allUninstallers) { }
+        public IEnumerable<IJunkResult> FindJunk(ApplicationUninstallerEntry target)
+        {
+            if (target.UninstallerKind != UninstallerType.Steam || string.IsNullOrEmpty(target.InstallLocation))
+                return Enumerable.Empty<IJunkResult>();
+
+            var results = new List<IJunkResult>();
+            try
+            {
+                // Look for this appID in steam library's temporary folders (game is inside "common" folder, temp folders are next to that)
+                var d = new DirectoryInfo(target.InstallLocation);
+                if (d.Exists && d.Parent?.Name == "common" && d.Parent.Parent != null)
+                {
+                    var libraryDir = d.Parent.Parent.FullName;
+                    Debug.Assert(target.RatingId.StartsWith("Steam App "));
+                    var appIdStr = target.RatingId.Substring("Steam App ".Length);
+                    foreach (var cacheFolderName in TempFolderNames)
+                    {
+                        var subpath = Path.Combine(libraryDir, cacheFolderName, appIdStr);
+                        if (Directory.Exists(subpath))
+                        {
+                            var junk = new FileSystemJunk(new DirectoryInfo(subpath), target, this);
+                            junk.Confidence.Add(ConfidenceRecords.ExplicitConnection);
+                            junk.Confidence.Add(4);
+                            results.Add(junk);
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.Fail(target.InstallLocation + " does not point inside of a steam library's common folder");
+                }
+
+            }
+            catch (SystemException e)
+            {
+                Console.WriteLine(e);
+            }
+            return results;
+        }
+
+        public string CategoryName { get; } = Localisation.UninstallerType_Steam;
+
+        #endregion
     }
 }

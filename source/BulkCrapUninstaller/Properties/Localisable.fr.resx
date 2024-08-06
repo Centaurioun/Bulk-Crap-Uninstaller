@@ -726,10 +726,10 @@ Vous pouver tenter de désactiver la prévention de collision dans les réglages
   <data name="Progress_Finishing_Icons" xml:space="preserve">
     <value>Icônes de chargement</value>
   </data>
-  <data name="NukeWindow_NoFilesSelected_Title" xml:space="preserve">
+  <data name="TargetWindow_NoFilesSelected_Title" xml:space="preserve">
     <value>Chercher une application</value>
   </data>
-  <data name="NukeWindow_NoFilesSelected_Message" xml:space="preserve">
+  <data name="TargetWindow_NoFilesSelected_Message" xml:space="preserve">
     <value>Aucun fichier ou dossier valide n'a été sélectionné. Assurez-vous que vous y avez accès, et qu'ils ne sont pas marqués comme fichiers système.</value>
   </data>
   <data name="Uninstaller_GetApplicationsFromDirectories_NothingFound_Title" xml:space="preserve">
@@ -767,5 +767,20 @@ Vous pouver tenter de désactiver la prévention de collision dans les réglages
   </data>
   <data name="NewsPopup_FirstStartTitle" xml:space="preserve">
     <value>Bienvenue à BCU version {0}!</value>
+  </data>
+  <data name="UninstallProgressWindow_StatusPuttingToSleepInSeconds" xml:space="preserve">
+    <value>Mise en veille du PC dans {0}s. Décocher la case veille pour annuler.</value>
+  </data>
+  <data name="UninstallerListDoubleClickAction_DoNothing" xml:space="preserve">
+    <value>Ne fait rien</value>
+    <comment>Option for "Double clicking in application list..."</comment>
+  </data>
+  <data name="UninstallerListDoubleClickAction_Properties" xml:space="preserve">
+    <value>Ouvre les propriétés</value>
+    <comment>Option for "Double clicking in application list..."</comment>
+  </data>
+  <data name="UninstallerListDoubleClickAction_Uninstall" xml:space="preserve">
+    <value>Déinstalle</value>
+    <comment>Option for "Double clicking in application list..."</comment>
   </data>
 </root>

@@ -31,9 +31,6 @@ namespace UninstallTools.Factory
         /// </summary>
         public static int AreEntriesRelated(ApplicationUninstallerEntry baseEntry, ApplicationUninstallerEntry otherEntry)
         {
-            //Debug.Assert(!(otherEntry.DisplayName.Contains("Steam", StringComparison.OrdinalIgnoreCase) && 
-            //    baseEntry.DisplayName.Contains("Steam", StringComparison.OrdinalIgnoreCase)));
-
             if (PathTools.PathsEqual(baseEntry.InstallLocation, otherEntry.InstallLocation))
                 return 100;
 
@@ -42,23 +39,27 @@ namespace UninstallTools.Factory
                 if (PathTools.PathsEqual(baseEntry.UninstallString, otherEntry.UninstallString))
                     return 100;
 
-                if (!string.IsNullOrEmpty(otherEntry.InstallLocation) 
+                if (otherEntry.IsOrphaned 
+                    && !string.IsNullOrEmpty(otherEntry.InstallLocation) 
                     && baseEntry.UninstallString.Contains(otherEntry.InstallLocation, StringComparison.InvariantCultureIgnoreCase))
                     return 100;
             }
 
-            if (!string.IsNullOrEmpty(baseEntry.UninstallerLocation) && !string.IsNullOrEmpty(otherEntry.InstallLocation)
+            if (otherEntry.IsOrphaned 
+                && !string.IsNullOrEmpty(baseEntry.UninstallerLocation) && !string.IsNullOrEmpty(otherEntry.InstallLocation)
                 && baseEntry.UninstallerLocation.StartsWith(otherEntry.InstallLocation, StringComparison.InvariantCultureIgnoreCase))
                 return 100;
             
             var score = 0;
 
+            if(!string.IsNullOrEmpty(baseEntry.RatingId) && !string.IsNullOrEmpty(otherEntry.RatingId))
+                AddScore(ref score, -5, 0, 10, baseEntry.RatingId == otherEntry.RatingId);
+
             if (!string.IsNullOrEmpty(baseEntry.InstallLocation) && !string.IsNullOrEmpty(otherEntry.InstallLocation))
                 AddScore(ref score, -8, 0, -3, baseEntry.InstallLocation.Contains(otherEntry.InstallLocation,
                     StringComparison.InvariantCultureIgnoreCase));
 
-            AddScore(ref score, -5, 0, 3, baseEntry.Is64Bit != MachineType.Unknown && otherEntry.Is64Bit != MachineType.Unknown ?
-                baseEntry.Is64Bit == otherEntry.Is64Bit : (bool?)null);
+            AddScore(ref score, -5, 0, 3, baseEntry.Is64Bit != MachineType.Unknown && otherEntry.Is64Bit != MachineType.Unknown ? baseEntry.Is64Bit == otherEntry.Is64Bit : null);
             AddScore(ref score, -3, -1, 5, CompareDates(baseEntry.InstallDate, otherEntry.InstallDate));
 
             AddScore(ref score, -2, 0, 5, CompareStrings(baseEntry.DisplayVersion, otherEntry.DisplayVersion, true));

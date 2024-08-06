@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Klocman.Tools;
@@ -35,12 +36,8 @@ namespace UninstallTools.Junk.Finders.Registry
             if (string.IsNullOrEmpty(target.InstallLocation))
                 yield break;
 
-            try
-            {
-                if (UninstallToolsGlobalConfig.IsSystemDirectory(target.InstallLocation))
-                    yield break;
-            }
-            catch (ArgumentException ex) { Console.WriteLine(ex); }
+            if (UninstallToolsGlobalConfig.IsSystemDirectory(target.InstallLocation))
+                yield break;
 
             foreach (var comEntry in _comEntries.Where(x => PathTools.SubPathIsInsideBasePath(target.InstallLocation, x.FullFilename, true)))
             {
@@ -149,8 +146,7 @@ namespace UninstallTools.Junk.Finders.Registry
                     }
                     catch (SystemException ex)
                     {
-                        Console.WriteLine(@"Unexpected error while scanning COM entries, the registry might be corrupted. COM junk detection will not work.");
-                        Console.WriteLine(ex);
+                        Trace.WriteLine(@"Unexpected error while scanning COM entries, the registry might be corrupted. COM junk detection will not work. Error: " + ex);
                     }
                 }
             }
@@ -225,7 +221,7 @@ namespace UninstallTools.Junk.Finders.Registry
                     }
                     catch (SystemException ex)
                     {
-                        Console.WriteLine($@"Crash while processing COM GUID: {clsidGuid} - {ex}");
+                        Trace.WriteLine($@"Crash while processing COM GUID: {clsidGuid} - {ex}");
                     }
                     finally
                     {
@@ -309,7 +305,7 @@ namespace UninstallTools.Junk.Finders.Registry
         private sealed class ComEntry
         {
             public readonly string Guid;
-            public readonly List<string> InterfaceNames = new List<string>();
+            public readonly List<string> InterfaceNames = new();
 
             public string FullFilename;
             //https://docs.microsoft.com/en-us/windows/desktop/com/-progid--key

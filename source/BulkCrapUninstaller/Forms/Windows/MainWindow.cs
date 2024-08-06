@@ -42,7 +42,7 @@ namespace BulkCrapUninstaller.Forms
         private string MainTitleBarText { get; }
 
         public static string CertificateCacheFilename { get; } = Path.Combine(Program.AssemblyLocation.FullName, "CertCache.xml");
-        public static CertificateCache CertificateCache { get; } = new CertificateCache(CertificateCacheFilename);
+        public static CertificateCache CertificateCache { get; } = new(CertificateCacheFilename);
 
         private readonly UninstallerListViewUpdater _listView;
         private readonly SettingTools _setMan;
@@ -50,7 +50,7 @@ namespace BulkCrapUninstaller.Forms
         private readonly AppUninstaller _appUninstaller;
         private readonly UninstallerListConfigurator _uninstallerListConfigurator;
 
-        private readonly ListLegendWindow _listLegendWindow = new ListLegendWindow();
+        private readonly ListLegendWindow _listLegendWindow = new();
         private DebugWindow _debugWindow;
 
         private bool _previousListLegendState = true;
@@ -163,8 +163,7 @@ namespace BulkCrapUninstaller.Forms
             _setMan.Selected.Settings.AdvancedSimulate = Program.EnableDebug;
 
             // Tracking
-            UsageManager.DataSender = new DatabaseStatSender(Program.DbConnectionString,
-                Resources.DbCommandStats, _setMan.Selected.Settings.MiscUserId);
+            UsageManager.DataSender = new DatabaseStatSender(Settings.Default.MiscUserId);
 
             // Misc
             filterEditor1.ComparisonMethodChanged += SearchCriteriaChanged;
@@ -201,10 +200,19 @@ namespace BulkCrapUninstaller.Forms
         {
             base.OnDpiChanged(e);
 
-            var scaleChange = e.DeviceDpiNew / (double)e.DeviceDpiOld;
+            try
+            {
+                var scaleChange = e.DeviceDpiNew / (double)e.DeviceDpiOld;
 
-            this.toolStripLabelSize.Width = (int)Math.Round(toolStripLabelSize.Width * scaleChange);
-            this.toolStripLabelTotal.Width = (int)Math.Round(toolStripLabelTotal.Width * scaleChange);
+                if (toolStripLabelSize != null) 
+                    toolStripLabelSize.Width = (int)Math.Round(toolStripLabelSize.Width * scaleChange);
+                if (toolStripLabelTotal != null) 
+                    toolStripLabelTotal.Width = (int)Math.Round(toolStripLabelTotal.Width * scaleChange);
+            }
+            catch (SystemException exception)
+            {
+                Console.WriteLine(exception);
+            }
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -217,6 +225,7 @@ namespace BulkCrapUninstaller.Forms
                 _listLegendWindow?.Dispose();
                 _uninstallerListConfigurator?.Dispose();
                 _debugWindow?.Dispose();
+                _uninstallerListPostProcesser?.Dispose();
             }
             catch (Exception exception)
             {
@@ -365,7 +374,7 @@ namespace BulkCrapUninstaller.Forms
 
         private void UpdateTreeMap(object sender, EventArgs args)
         {
-            treeMap1.Populate(_listView.FilteredUninstallers.Cast<object>());
+            treeMap1.Populate(_listView.FilteredUninstallers);
         }
 
         private void OnApplicationListVisibleItemsChanged(object sender, EventArgs e)
@@ -523,7 +532,7 @@ namespace BulkCrapUninstaller.Forms
         private void BackgroundSearchForUpdates()
         {
             UpdateGrabber.AutoUpdate(() => _listView.FirstRefreshCompleted,
-                () => this.SafeInvoke(UpdateGrabber.AskAndBeginUpdate));
+                v => this.SafeInvoke(() => UpdateGrabber.AskAndBeginUpdate(v)));
         }
 
         private void basicOperationsToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
@@ -1007,13 +1016,14 @@ namespace BulkCrapUninstaller.Forms
 
         private void RenameEntries(object sender, EventArgs eventArgs)
         {
-            if (_listView.SelectedUninstallerCount != 1)
+            var selectedUninstallers = _listView.SelectedUninstallers.ToList();
+            if (selectedUninstallers.Count != 1)
             {
                 MessageBoxes.CanSelectOnlyOneItemInfo();
                 return;
             }
 
-            var selected = _listView.SelectedUninstallers.First();
+            var selected = selectedUninstallers[0];
 
             if (!_setMan.Selected.Settings.AdvancedDisableProtection && selected.IsProtected)
             {
@@ -1201,7 +1211,19 @@ namespace BulkCrapUninstaller.Forms
                 uninstallerObjectListView.CheckObject(e.RowObject);
             }
 
-            OpenProperties(sender, e);
+            switch (Settings.Default.UninstallerListDoubleClickAction)
+            {
+                case UninstallerListDoubleClickAction.DoNothing:
+                    break;
+                case UninstallerListDoubleClickAction.OpenProperties:
+                    OpenProperties(sender, e);
+                    break;
+                case UninstallerListDoubleClickAction.Uninstall:
+                    RunLoudUninstall(sender, e);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(UninstallerListDoubleClickAction), Settings.Default.UninstallerListDoubleClickAction, "Unhandled value");
+            }
 
             //uninstallerObjectListView.CancelCellEdit();
         }
@@ -1213,7 +1235,7 @@ namespace BulkCrapUninstaller.Forms
 
             if (uninstallerObjectListView.CheckBoxes && !uninstallerObjectListView.IsChecked(e.Model))
             {
-                uninstallerObjectListView.UncheckAll();
+                //uninstallerObjectListView.UncheckAll();
                 uninstallerObjectListView.CheckObject(e.Model);
             }
         }
@@ -1498,9 +1520,9 @@ namespace BulkCrapUninstaller.Forms
             _uninstallerListConfigurator.RatingManagerWrapper.RateEntries(_listView.SelectedUninstallers.ToArray(), Point.Empty);
         }
 
-        private void OpenNukeWindow(object sender, EventArgs e)
+        private void OpenTargetWindow(object sender, EventArgs e)
         {
-            var results = NukeWindow.ShowDialog(this);
+            var results = TargetWindow.ShowDialog(this, SetVisible);
 
             if (results == null) return;
 
@@ -1823,7 +1845,7 @@ namespace BulkCrapUninstaller.Forms
             LockApplication(true);
             try
             {
-                SystemRestore.BeginSysRestore(0, false, true, this);
+                SystemRestore.BeginSysRestore(0, false, this);
             }
             catch (Exception exception)
             {

@@ -406,7 +406,7 @@
     <value>Version</value>
   </data>
   <data name="toolStripButton7.Text" xml:space="preserve">
-    <value>Charger une ou des listes existantes...</value>
+    <value>Réglages</value>
   </data>
   <data name="toolStripButtonSelAll.Text" xml:space="preserve">
     <value>Sélectionner tous les éléments</value>
@@ -483,10 +483,10 @@
   <data name="openSystemRestoreToolStripMenuItem.Text" xml:space="preserve">
     <value>Ouvrir "Récupération"</value>
   </data>
-  <data name="toolStripButtonNuke.Text" xml:space="preserve">
+  <data name="toolStripButtonTarget.Text" xml:space="preserve">
     <value>Désinstaller par fenêtre, dossier ou fichier...</value>
   </data>
-  <data name="nukeMenuItem.Text" xml:space="preserve">
+  <data name="targetMenuItem.Text" xml:space="preserve">
     <value>Désinstaller par fenêtre, dossier ou fichier...</value>
   </data>
   <data name="fossHubcomToolStripMenuItem.Text" xml:space="preserve">
@@ -578,5 +578,14 @@
   </data>
   <data name="createRestorePointToolStripMenuItem.Text" xml:space="preserve">
     <value>Créer un nouveau point de restauration</value>
+  </data>
+  <data name="slantcoToolStripMenuItem.Text" xml:space="preserve">
+    <value>Slant.co</value>
+  </data>
+  <data name="slantcoToolStripMenuItem1.Text" xml:space="preserve">
+    <value>Slant.co</value>
+  </data>
+  <data name="takeOwnershipToolStripMenuItem.Text" xml:space="preserve">
+    <value>Devenir propriétaire</value>
   </data>
 </root>

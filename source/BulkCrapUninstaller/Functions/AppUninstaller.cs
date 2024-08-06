@@ -33,12 +33,12 @@ namespace BulkCrapUninstaller.Functions
         private readonly Action<bool> _lockApplication;
         private readonly Action<bool> _visibleCallback;
         private readonly Settings _settings = Settings.Default;
-        private readonly object _uninstallLock = new object();
+        private readonly object _uninstallLock = new();
 
         /// <summary>
         ///     Uninstall tasks will wait until this is released to continue. Keep it short to prevent ui unresponsiveness.
         /// </summary>
-        public readonly object PublicUninstallLock = new object();
+        public readonly object PublicUninstallLock = new();
 
         private static readonly int MyProcessId = Environment.ProcessId;
 
@@ -103,6 +103,9 @@ namespace BulkCrapUninstaller.Functions
         public static IEnumerable<ApplicationUninstallerEntry> GetApplicationsFromProcess(
             IEnumerable<ApplicationUninstallerEntry> allApplications, Process targetProcess)
         {
+            if (targetProcess == null) throw new ArgumentNullException(nameof(targetProcess));
+            if (targetProcess.MainModule?.FileName == null) throw new ArgumentException("MainModule is null");
+
             var mainFilename = targetProcess.MainModule.FileName;
             return from app in allApplications
                    where
@@ -140,7 +143,7 @@ namespace BulkCrapUninstaller.Functions
                     if (doNotKillSteam && pr.ProcessName.Equals("steam", StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    if (string.IsNullOrEmpty(pr.MainModule.FileName) ||
+                    if (string.IsNullOrEmpty(pr.MainModule?.FileName) ||
                         pr.MainModule.FileName.StartsWith(WindowsTools.GetEnvironmentPath(CSIDL.CSIDL_SYSTEM), StringComparison.OrdinalIgnoreCase))
                         continue;
 
@@ -270,7 +273,7 @@ namespace BulkCrapUninstaller.Functions
             {
                 // ODE at CreateHandle can be caused by closing main window in the middle of the process
                 // It gets thrown at ShowDialog, it's safe to cancel the process at these points
-                if (ex.TargetSite.Name != "CreateHandle") throw;
+                if (ex.TargetSite?.Name != "CreateHandle") throw;
             }
             finally
             {
@@ -431,7 +434,7 @@ namespace BulkCrapUninstaller.Functions
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine("Exception while removing junk: " + ex.ToString());
+                                Console.WriteLine("Exception while removing junk: " + ex);
                             }
                         }
                     }
@@ -458,6 +461,7 @@ namespace BulkCrapUninstaller.Functions
                 else
                     ShowJunkWindow(junk);
             }
+            catch (ObjectDisposedException) { }
             finally
             {
                 ReleaseUninstallLock();
@@ -534,15 +538,10 @@ namespace BulkCrapUninstaller.Functions
 
                 var items = new List<ApplicationUninstallerEntry>();
                 LoadingDialog.ShowDialog(MessageBoxes.DefaultOwner, Localisable.UninstallFromDirectory_ScanningTitle,
-                    _ =>
-                    {
-                        items.AddRange(DirectoryFactory.TryCreateFromDirectory(
-                            new DirectoryInfo(result), null, Array.Empty<string>()));
-                    });
+                    _ => items.AddRange(DirectoryFactory.TryCreateFromDirectory(new DirectoryInfo(result), Array.Empty<string>())));
 
                 if (items.Count == 0)
-                    items.AddRange(applicationUninstallerEntries
-                        .Where(x => PathTools.PathsEqual(result, x.InstallLocation)));
+                    items.AddRange(applicationUninstallerEntries.Where(x => PathTools.PathsEqual(result, x.InstallLocation)));
 
                 if (items.Count == 0)
                     MessageBoxes.UninstallFromDirectoryNothingFound();
@@ -607,8 +606,12 @@ namespace BulkCrapUninstaller.Functions
 
                 try
                 {
-                    Process.Start("unins000.exe");
-                    Environment.Exit(0);
+                    var fullPath = MessageBoxes.GetBundledFilePath("unins000.exe");
+                    if (fullPath != null)
+                    {
+                        Process.Start(fullPath);
+                        Environment.Exit(0);
+                    }
                 }
                 catch (Exception ex)
                 {

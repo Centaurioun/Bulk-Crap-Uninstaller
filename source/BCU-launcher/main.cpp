@@ -115,9 +115,13 @@ int main()
 		return 2;
 	}
 
+	// Required on some systems or CreateProcess fails
+	p = L"\"" + p + L"\"";
+
 	auto cl = p.c_str();
-	wchar_t* cla = new wchar_t[500];
-	wcscpy_s(cla, 500, cl);
+	size_t pSizeTerminated = p.size() + 1;
+	wchar_t* cla = new wchar_t[pSizeTerminated];
+	wcscpy_s(cla, pSizeTerminated, cl);
 
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;

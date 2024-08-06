@@ -5,11 +5,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Security;
-using Klocman.Extensions;
 using Klocman.Native;
 using Klocman.Tools;
 
@@ -63,10 +63,9 @@ namespace UninstallTools.Startup.Service
                     results.Add(e);
                 }
             }
-            catch (Exception ex) when (ex is TypeInitializationException || ex is ManagementException || ex is ExternalException)
+            catch (Exception ex) when (ex is TypeInitializationException || ex is ManagementException || ex is ExternalException || ex is PlatformNotSupportedException)
             {
-                Console.Write(@"Error while gathering services - ");
-                Console.WriteLine(ex);
+                Trace.WriteLine(@"Error while gathering services - " + ex);
             }
 
             return results.ToArray();
@@ -88,7 +87,7 @@ namespace UninstallTools.Startup.Service
             inParams["StartMode"] = newState ? "Automatic" : "Disabled";
 
             // Execute the method and obtain the return values.
-            var outParams = classInstance.InvokeMethod("ChangeStartMode", inParams, null);
+            var outParams = classInstance.InvokeMethod("ChangeStartMode", inParams, new InvokeMethodOptions { Timeout = TimeSpan.FromMinutes(1) });
             CheckReturnValue(outParams);
         }
 
@@ -107,7 +106,7 @@ namespace UninstallTools.Startup.Service
             var classInstance = GetServiceObject(serviceName);
 
             // Execute the method and obtain the return values.
-            var outParams = classInstance.InvokeMethod("Delete", null, null);
+            var outParams = classInstance.InvokeMethod("Delete", null, new InvokeMethodOptions { Timeout = TimeSpan.FromMinutes(1) });
             CheckReturnValue(outParams, 16); // 16 - Service Marked For Deletion
         }
 
@@ -128,7 +127,7 @@ namespace UninstallTools.Startup.Service
         private static ManagementObject GetServiceObject(string serviceName)
         {
             return new ManagementObject("root\\CIMV2",
-                $"Win32_Service.Name='{serviceName}'", null);
+                $"Win32_Service.Name='{serviceName}'", new ObjectGetOptions { Timeout = TimeSpan.FromMinutes(1) });
         }
     }
 }

@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security;
@@ -78,7 +79,7 @@ namespace UninstallTools.Factory
                 catch (Exception ex)
                 {
                     //Uninstaller is invalid or there is no uninstaller in the first place. Skip it to avoid problems.
-                    Console.WriteLine($@"Failed to extract reg entry {data.Key.Name} - {ex}");
+                    Trace.WriteLine($@"Failed to extract reg entry {data.Key.Name} - {ex}");
                 }
                 finally
                 {
@@ -131,15 +132,23 @@ namespace UninstallTools.Factory
                 ModifyPath = uninstallerKey.GetStringSafe(RegistryNameModifyPath),
                 InstallLocation = uninstallerKey.GetStringSafe(RegistryNameInstallLocation),
                 InstallSource = uninstallerKey.GetStringSafe(RegistryNameInstallSource),
-                SystemComponent = (int)uninstallerKey.GetValue(RegistryNameSystemComponent, 0) != 0,
+                SystemComponent = Convert.ToInt32(uninstallerKey.GetValue(RegistryNameSystemComponent, 0)) != 0,
                 DisplayIcon = uninstallerKey.GetStringSafe(RegistryNameDisplayIcon)
             };
         }
 
         private static FileSize GetEstimatedSize(RegistryKey uninstallerKey)
         {
-            var tempSize = (int)uninstallerKey.GetValue(RegistryNameEstimatedSize, 0);
-            return FileSize.FromKilobytes(tempSize);
+            try
+            {
+                // Use Convert.ToInt64 because some applications put a string in here instead of a number
+                var tempSize = Convert.ToInt64(uninstallerKey.GetValue(RegistryNameEstimatedSize, 0));
+                return FileSize.FromKilobytes(tempSize);
+            }
+            catch (SystemException e) when (e is FormatException or InvalidCastException)
+            {
+                return FileSize.Empty;
+            }
         }
 
         private static Guid GetGuid(RegistryKey uninstallerKey)
@@ -189,9 +198,23 @@ namespace UninstallTools.Factory
             {
                 try
                 {
+                    // Likely to be in YYYYMMDD format
                     return new DateTime(int.Parse(dateString.Substring(0, 4)),
-                        int.Parse(dateString.Substring(4, 2)),
-                        int.Parse(dateString.Substring(6, 2)));
+                                    int.Parse(dateString.Substring(4, 2)),
+                                    int.Parse(dateString.Substring(6, 2)));
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    try
+                    {
+                        // YYYYDDMM format instead of standard YYYYMMDD?
+                        return new DateTime(int.Parse(dateString.Substring(0, 4)),
+                                            int.Parse(dateString.Substring(6, 2)),
+                                            int.Parse(dateString.Substring(4, 2)));
+                    }
+                    catch (SystemException)
+                    {
+                    }
                 }
                 catch (FormatException)
                 {
@@ -226,7 +249,7 @@ namespace UninstallTools.Factory
 
         private static bool GetProtectedFlag(RegistryKey uninstallerKey)
         {
-            return (int)uninstallerKey.GetValue("NoRemove", 0) != 0;
+            return Convert.ToInt32(uninstallerKey.GetValue("NoRemove", 0)) != 0;
         }
 
         private static RegistryKey OpenSubKeySafe(RegistryKey baseKey, string name, bool writable = false)
@@ -267,7 +290,7 @@ namespace UninstallTools.Factory
         private static UninstallerType GetUninstallerType(RegistryKey uninstallerKey)
         {
             // Detect MSI installer based on registry entry (the proper way)
-            if ((int)uninstallerKey.GetValue(RegistryNameWindowsInstaller, 0) != 0)
+            if (Convert.ToInt32(uninstallerKey.GetValue(RegistryNameWindowsInstaller, 0)) != 0)
             {
                 return UninstallerType.Msiexec;
             }

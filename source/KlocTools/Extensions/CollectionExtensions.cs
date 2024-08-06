@@ -11,7 +11,7 @@ namespace Klocman.Extensions
 {
     public static class CollectionExtensions
     {
-        private static readonly Random R = new Random();
+        private static readonly Random R = new();
         
         /// <summary>
         /// Wrap this object in an enumerable that returns this object once and finishes.
@@ -90,16 +90,6 @@ namespace Klocman.Extensions
                 }
                 return i == count;
             }
-        }
-
-        /// <summary>
-        /// Run distinct on the specified key
-        /// </summary>
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source,
-            Func<TSource, TKey> keySelector)
-        {
-            var seenKeys = new HashSet<TKey>();
-            return source.Where(element => seenKeys.Add(keySelector(element)));
         }
 
         /// <summary>

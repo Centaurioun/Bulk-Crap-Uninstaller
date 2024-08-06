@@ -1,7 +1,6 @@
-[![Donate](https://img.shields.io/badge/donate-paypal%20%2F%20bitcoin-brightgreen.svg)](http://klocmansoftware.weebly.com/donate.html)
+[![Donate](https://img.shields.io/badge/donate-paypal-brightgreen.svg)](http://klocmansoftware.weebly.com/donate.html)
 [![GitHub release](https://img.shields.io/github/release/klocman/Bulk-Crap-Uninstaller.svg)](https://github.com/Klocman/Bulk-Crap-Uninstaller/releases)
 [![license](https://img.shields.io/github/license/klocman/Bulk-Crap-Uninstaller.svg)](https://github.com/Klocman/Bulk-Crap-Uninstaller/blob/master/Licence.txt)
-[![Issues](https://img.shields.io/github/issues/klocman/Bulk-Crap-Uninstaller.svg)](https://github.com/Klocman/Bulk-Crap-Uninstaller/issues)
 
 ### [:warning: Looking for maintainers :warning:](https://github.com/Klocman/Bulk-Crap-Uninstaller/discussions/289)
 
@@ -21,7 +20,7 @@ Bulk Crap Uninstaller is licensed under Apache 2.0 open source license, and can 
 ## Download
 [Download from FossHub](https://www.fosshub.com/Bulk-Crap-Uninstaller.html)
 
-[Download from OSDN](https://osdn.net/projects/bulk-crap-uninstaller/releases/latest-release)
+[Download from SourceForge](https://sourceforge.net/projects/bulk-crap-uninstaller/)
 
 ## How can I help?
 Please check the [contribution](CONTRIBUTING.md) notes!

@@ -35,7 +35,7 @@ namespace UninstallTools.Junk.Finders.Drive
 
         public override IEnumerable<IJunkResult> FindJunk(ApplicationUninstallerEntry target)
         {
-            return _foldersToCheck.SelectMany(x => FindJunkRecursively(x, target)).Cast<IJunkResult>();
+            return _foldersToCheck.SelectMany(x => FindJunkRecursively(x, target));
         }
 
         public override string CategoryName => Localisation.Junk_Drive_GroupName;
@@ -71,6 +71,7 @@ namespace UninstallTools.Junk.Finders.Drive
                     if (level > 1) continue;
 
                     var junkNodes = FindJunkRecursively(dir, uninstaller, level + 1).ToList();
+                    // ReSharper disable once PossibleMultipleEnumeration
                     results = results.Concat(junkNodes);
 
                     if (newNode != null)
@@ -90,9 +91,10 @@ namespace UninstallTools.Junk.Finders.Drive
             catch (Exception ex)
             {
                 if (Debugger.IsAttached) throw;
-                Console.WriteLine(ex);
+                Trace.WriteLine(ex);
             }
 
+            // ReSharper disable once PossibleMultipleEnumeration
             return results;
         }
 
