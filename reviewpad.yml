@@ -95,8 +95,8 @@ workflows:
     description: Check that pull requests have the required number of approvals
     run:
       # Label pull requests with `waiting-for-review` if there are no approvals;
-      # - if: $isDraft() == false && $approvalsCount() < 1
-      #  then: $addLabel("waiting-for-review")
+      - if: $isDraft() == false && $approvalsCount() < 1
+        then: $addLabel("waiting-for-review")
 
   # This workflow labels pull requests based on the pull request change type.
   # This helps pick pull requests based on their change type.
